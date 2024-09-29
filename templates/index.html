@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crawler with Loading Popup</title>
+    <!-- Link to External CSS File -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">Crawler</h1>
+        <label for="website_url">Website URL:</label>
+        <input type="text" id="website_url" placeholder="e.g., https://example.com">
+        
+        <label for="chrome_driver_path">ChromeDriver Path:</label>
+        <input type="text" id="chrome_driver_path" placeholder="e.g., D:\\Apps\\chromedriver-win64\\chromedriver.exe">
+        
+        <label for="output_file">Output File:</label>
+        <input type="text" id="output_file" placeholder="e.g., output.txt">
+        
+        <button id="start_crawl">Start Crawl</button>
+
+        <div id="log-panel"></div>
+        <div class="progress-bar">
+            <div id="progress-bar-fill"></div>
+        </div>
+    </div>
+
+    <!-- Loading Popup Modal -->
+    <div class="popup-background" id="loading-popup">
+        <div class="popup-content">
+            <h2>Loading...</h2>
+            <div class="spinner"></div>
+            <p>Please wait while the crawling is in progress.</p>
+        </div>
+    </div>
+
+    <!-- Link to External JS File -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
