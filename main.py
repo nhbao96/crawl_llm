@@ -4,7 +4,12 @@ from bs4 import BeautifulSoup
 import time
 import hashlib
 import os
+import json
 
+#from selenium import webdriver
+#from webdriver_manager.chrome import ChromeDriverManager
+
+#driver = webdriver.Chrome(ChromeDriverManager().install())
 def init_driver(chrome_driver_path):
     service = Service(executable_path=chrome_driver_path)
     return webdriver.Chrome(service=service)
@@ -19,7 +24,7 @@ def scroll_to_end(driver):
             break  
         last_height = new_height
 
-def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), content_hashes=set()):
+def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), title_hashes=set()):
     # check max depth 
     if depth > max_depth:
         return 
@@ -41,18 +46,60 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), c
         tag.decompose()
     
     # get content -> create hash to check overlap
-    content = ' '.join(soup.get_text(separator=" ", strip=True).split())
-    content_hash = hashlib.md5(content.encode('utf-8')).hexdigest()
+    #content = ' '.join(soup.get_text(separator=" ", strip=True).split())
+    # get title
+    try:
+        title = soup.title.get_text()
+    except Exception as e:
+        print(f'Can not find title {url}: {e}')
+        return
+    #hash title 
+    title_hash = hashlib.md5(title.encode('utf-8')).hexdigest()
     
-    if content_hash in content_hashes:
+    if title_hash in title_hashes:
         return
 
+    title_hashes.add(title_hash)
     visited_links.add(url)
-    content_hashes.add(content_hash)
     
-    # write result to output file
-    with open(output_file, 'a', encoding='utf-8', newline='') as f:
-        f.write(f'{url} #{content}\n\n')
+    # get description
+    try:
+        meta_description = soup.find('meta', attrs={'property': 'og:description'}).get('content')
+    except Exception as e:
+        print(f'Can not get description from {url}:{e}')
+        meta_description =''
+    #metadata
+    try:
+        metadata_raw = soup.find('p', class_='author').get_text()
+        metadata =metadata_raw.split('-')
+    except Exception as e:
+        metadata =['','']
+    # get content
+    try:
+        content_all = soup.find_all("div", {"class":"ta-justify"})
+        content_all = content_all[0].find_all('p')
+        content_final=""
+        for content in content_all[0:-1]:
+            content_final=content_final+content.text.strip()
+    except:
+        print('no content')
+        content_final=''
+    else:
+        print('content pass')
+    
+    #get meta data
+    
+    data ={
+            "#url":url,
+            "title": title,
+            "description": meta_description,
+            "content":content_final,
+            "metadata":{
+                'date':metadata[1]
+            }
+    }
+    with open(output_file, 'a+', encoding='utf-8', newline='') as f:
+        f.write(f'{data},\n')
 
     # find , handle child urls
     for link in soup.find_all('a', href=True):
@@ -72,14 +119,16 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), c
 
         # recursive handle child url
         if new_url not in visited_links and new_url.startswith(url):
-            crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, content_hashes)
+            crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, title_hashes)
 
 
 def run_crawl(website_url, chrome_driver_path, output_file):
     # check file if exist, rm
     if os.path.exists(output_file):
         os.remove(output_file)
-
+    with open(output_file, 'w+', encoding='utf-8') as file:
+        file.write('{\n')
+        file.close()
     driver = init_driver(chrome_driver_path)
     try:
         crawl(website_url, driver, output_file)
@@ -88,8 +137,16 @@ def run_crawl(website_url, chrome_driver_path, output_file):
 
 #data config
 website_url = 'https://vtv.vn/'
-chrome_driver_path = r'D:\Apps\chromedriver-win64\chromedriver.exe'
-output_file = 'vtv_data1809.txt'
-
-
+chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.exe'
+output_file = 'content.json'
+#content_vtv3009=dict()
+with open(output_file, 'w+', encoding='utf-8') as file:
+    file.write('{\n')
+    file.close()
 run_crawl(website_url, chrome_driver_path, output_file)
+
+with open(output_file, 'w+', encoding='utf-8') as file:
+    file.seek(-1, 2)
+    file.truncate()
+    file.write('\n}')
+    file.close()
