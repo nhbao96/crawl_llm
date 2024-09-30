@@ -6,10 +6,6 @@ import hashlib
 import os
 import json
 
-#from selenium import webdriver
-#from webdriver_manager.chrome import ChromeDriverManager
-
-#driver = webdriver.Chrome(ChromeDriverManager().install())
 def init_driver(chrome_driver_path):
     service = Service(executable_path=chrome_driver_path)
     return webdriver.Chrome(service=service)
@@ -44,8 +40,7 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
     # rm unnesserary tags
     for tag in soup(['img', 'video']):
         tag.decompose()
-    
-    # get content -> create hash to check overlap
+    # get title -> create hash to check overlap
     #content = ' '.join(soup.get_text(separator=" ", strip=True).split())
     # get title
     try:
@@ -68,12 +63,14 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
     except Exception as e:
         print(f'Can not get description from {url}:{e}')
         meta_description =''
+    
     #metadata
     try:
         metadata_raw = soup.find('p', class_='author').get_text()
         metadata =metadata_raw.split('-')
     except Exception as e:
         metadata =['','']
+    
     # get content
     try:
         content_all = soup.find_all("div", {"class":"ta-justify"})
@@ -86,8 +83,6 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
         content_final=''
     else:
         print('content pass')
-    
-    #get meta data
     
     data ={
             "#url":url,
@@ -139,7 +134,8 @@ def run_crawl(website_url, chrome_driver_path, output_file):
 website_url = 'https://vtv.vn/'
 chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.exe'
 output_file = 'content.json'
-#content_vtv3009=dict()
+
+#process content file 
 with open(output_file, 'w+', encoding='utf-8') as file:
     file.write('{\n')
     file.close()
