@@ -6,6 +6,9 @@ import time
 import hashlib
 import os
 import threading
+import chromedriver_autoinstaller
+import sys
+sys.path.insert(0, '/usr/lib/chromium-browser/chromedriver')
 
 app = Flask(__name__)
 
@@ -15,9 +18,13 @@ logs = []
 content_stream = []  
 
 # Function to initialize Selenium driver
-def init_driver(chrome_driver_path):
-    service = Service(executable_path=chrome_driver_path)
-    return webdriver.Chrome(service=service)
+def init_driver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chromedriver_autoinstaller.install()
+    return webdriver.Chrome(options=chrome_options)
 
 # Function to scroll the page down to the end
 def scroll_to_end(driver):
@@ -85,7 +92,7 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), c
         if new_url not in visited_links and new_url.startswith(url):
             crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, content_hashes)
 
-def run_crawl(website_url, chrome_driver_path, output_file):
+def run_crawl(website_url, output_file):
     global progress, logs, content_stream
 
     # Reset progress and logs
@@ -96,7 +103,7 @@ def run_crawl(website_url, chrome_driver_path, output_file):
     if os.path.exists(output_file):
         os.remove(output_file)
 
-    driver = init_driver(chrome_driver_path)
+    driver = init_driver()
     try:
         crawl(website_url, driver, output_file)
     finally:
@@ -104,7 +111,7 @@ def run_crawl(website_url, chrome_driver_path, output_file):
 
 # Background thread for crawling
 def start_crawl_thread(website_url, chrome_driver_path, output_file):
-    crawl_thread = threading.Thread(target=run_crawl, args=(website_url, chrome_driver_path, output_file))
+    crawl_thread = threading.Thread(target=run_crawl, args=(website_url, output_file))
     crawl_thread.start()
 
 # Home route

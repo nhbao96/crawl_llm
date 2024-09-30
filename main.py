@@ -5,10 +5,18 @@ import time
 import hashlib
 import os
 import json
+import sys
+import chromedriver_autoinstaller
+sys.path.insert(0,'/usr/lib/chromium-browser/chromedriver')
 
-def init_driver(chrome_driver_path):
-    service = Service(executable_path=chrome_driver_path)
-    return webdriver.Chrome(service=service)
+
+def init_driver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chromedriver_autoinstaller.install()
+    return webdriver.Chrome(options=chrome_options)
 
 def scroll_to_end(driver):
     last_height = driver.execute_script("return document.body.scrollHeight")
@@ -117,14 +125,14 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
             crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, title_hashes)
 
 
-def run_crawl(website_url, chrome_driver_path, output_file):
+def run_crawl(website_url, output_file):
     # check file if exist, rm
     if os.path.exists(output_file):
         os.remove(output_file)
     with open(output_file, 'w+', encoding='utf-8') as file:
         file.write('{\n')
         file.close()
-    driver = init_driver(chrome_driver_path)
+    driver = init_driver()
     try:
         crawl(website_url, driver, output_file)
     finally:
@@ -132,14 +140,14 @@ def run_crawl(website_url, chrome_driver_path, output_file):
 
 #data config
 website_url = 'https://vtv.vn/'
-chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.exe'
+# chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.exe'
 output_file = 'content.json'
 
 #process content file 
 with open(output_file, 'w+', encoding='utf-8') as file:
     file.write('{\n')
     file.close()
-run_crawl(website_url, chrome_driver_path, output_file)
+run_crawl(website_url, output_file)
 
 with open(output_file, 'w+', encoding='utf-8') as file:
     file.seek(-1, 2)
