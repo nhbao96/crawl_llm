@@ -7,6 +7,9 @@ import json
 import threading
 import os
 from datetime import datetime
+import chromedriver_autoinstaller
+import sys
+sys.path.insert(0,'/usr/lib/chromium-browser/chromedriver')
 
 app = Flask(__name__)
 
@@ -22,6 +25,14 @@ def init_driver():
     driver_path = 'D:\\Apps\\chromedriver-win64\\chromedriver.exe'
     service = Service(executable_path=driver_path)
     return webdriver.Chrome(service=service)
+
+def init_linux_driver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chromedriver_autoinstaller.install()
+    return webdriver.Chrome(options=chrome_options) 
 
 def init_output_file(output_file, format_type):
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -116,7 +127,7 @@ def start_crawl_thread(website_url, output_file_param, format_type_param):
     content_stream = []
     output_file = output_file_param
     format_type = format_type_param
-    driver = init_driver()
+    driver = init_linux_driver()
     init_output_file(output_file, format_type)
     is_crawling = True
     try:
@@ -171,5 +182,6 @@ def download_log():
     else:
         return jsonify({'status': 'error', 'message': 'File not found!'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
+
