@@ -56,6 +56,31 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
 
     title_hashes.add(title_hash)
     visited_links.add(url)
+
+    #check url before go through content
+    # find , handle child urls
+    for link in soup.find_all('a', href=True):
+        new_url = link['href']
+        
+        # rm rss
+        if 'rss' in new_url:
+            continue
+        # remove video and do not values content link
+        if ('video' in new_url) or ('media' in new_url) or ('podcast' in new_url):
+            continue
+        if ('#' in new_url) or ('@' in new_url) or ('javascript' in new_url):
+            continue
+        # change absolute
+        if new_url.startswith('/'):
+            new_url = url.rstrip('/') + new_url
+
+        # rm redundant in url
+        if ".htm" in new_url and new_url.count(".htm") > 1:
+            new_url = new_url.replace(".htm", "", new_url.count(".htm") - 1)
+
+        # recursive handle child url
+        if new_url not in visited_links and new_url.startswith(url):
+            crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, title_hashes)
     
     # get description
     try:
@@ -80,7 +105,7 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
             content_final=content_final+content.text.strip()
     except:
         print('no content')
-        content_final=''
+        return
     else:
         print('content pass')
     
@@ -96,25 +121,7 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
     with open(output_file, 'a+', encoding='utf-8', newline='') as f:
         f.write(f'{data},\n')
 
-    # find , handle child urls
-    for link in soup.find_all('a', href=True):
-        new_url = link['href']
-        
-        # rm rss
-        if 'rss' in new_url:
-            continue 
-
-        # change absolute
-        if new_url.startswith('/'):
-            new_url = url.rstrip('/') + new_url
-
-        # rm redundant in url
-        if ".htm" in new_url and new_url.count(".htm") > 1:
-            new_url = new_url.replace(".htm", "", new_url.count(".htm") - 1)
-
-        # recursive handle child url
-        if new_url not in visited_links and new_url.startswith(url):
-            crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, title_hashes)
+    
 
 
 def run_crawl(website_url, chrome_driver_path, output_file):

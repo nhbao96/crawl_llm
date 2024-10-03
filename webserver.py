@@ -61,9 +61,18 @@ def extract_page_data(driver, url):
     description = description_tag.get('content') if description_tag else ""
     for tag in soup(['script', 'style', 'meta', 'link', 'img', 'video', 'a']):
         tag.decompose()
-    content = ' '.join(soup.get_text(separator=" ", strip=True).split())
-    content = content.replace(title, "").replace(description, "")
-    return {"#url": url, "title": title, "description": description, "content": content, "meta_data": meta_data}
+    # content = ' '.join(soup.get_text(separator=" ", strip=True).split())
+    # content = content.replace(title, "").replace(description, "")
+    try:
+        content_all = soup.find_all("div", {"class":"ta-justify"})
+        content_all = content_all[0].find_all('p')
+        content_final=""
+        for content in content_all[0:-1]:
+            content_final=content_final+content.text.strip()
+    except:
+        return
+    finally:
+        return {"#url": url, "title": title, "description": description, "content": content, "meta_data": meta_data}
 
 def write_page_data(output_file, page_data, format_type, first_entry):
     with open(output_file, 'a', encoding='utf-8') as f:
@@ -101,6 +110,10 @@ def crawl_and_save(url, driver, output_file, format_type="json", depth=0, max_de
     for link in soup.find_all('a', href=True):
         new_url = link['href']
         if 'rss' in new_url or new_url in visited_links:
+            continue
+        if ('video' in new_url) or ('media' in new_url) or ('podcast' in new_url):
+            continue
+        if ('#' in new_url) or ('@' in new_url) or ('javascript' in new_url):
             continue
         if new_url.startswith('/'):
             new_url = normalized_url.rstrip('/') + new_url
