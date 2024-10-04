@@ -17,6 +17,15 @@ driver = None
 is_crawling = False
 output_file = ""
 format_type = ""
+default_ignore_classes = [
+    "header_top show-search", "video-submenu", "video-program-header", 
+    "VTVNewsPlayer-overlay", "box-content notinit", "footer", "menu_footer", 
+    "header", "ads_right_1 ads", "stickymenuleft"
+]
+ignore_classes = default_ignore_classes.copy()  # Danh sách bỏ qua cho UI
+
+# Các cụm từ không muốn thêm vào nội dung kết quả
+unwanted_phrases = ["Current Time", "ĐANG ĐƯỢC QUAN TÂM"]
 
 def init_driver():
     driver_path = 'D:\\Apps\\chromedriver-win64\\chromedriver.exe'
@@ -50,19 +59,40 @@ def extract_meta_data(soup):
     keywords = keywords_tag.get('content') if keywords_tag else "No keywords"
     return {"datetime_crawled": datetime_crawled, "keywords": keywords}
 
+# Loại bỏ các phần tử có class không liên quan và nội dung không mong muốn
+def remove_unwanted_elements(soup):
+    # Loại bỏ các phần tử với class không quan trọng
+    for class_name in ignore_classes:
+        unwanted_elements = soup.find_all(class_=class_name)
+        for element in unwanted_elements:
+            element.decompose()
+
+    # Loại bỏ các phần tử chứa cụm từ không mong muốn
+    for phrase in unwanted_phrases:
+        unwanted_text_elements = soup.find_all(string=lambda text: text and phrase in text)
+        for element in unwanted_text_elements:
+            element.extract()
+
 def extract_page_data(driver, url):
     driver.get(url)
     time.sleep(2)
     scroll_to_end(driver)
     soup = BeautifulSoup(driver.page_source, 'html.parser')
+    
+    # Loại bỏ các phần tử không mong muốn
+    remove_unwanted_elements(soup)
+
     title = soup.title.get_text() if soup.title else ""
     meta_data = extract_meta_data(soup)
     description_tag = soup.find('meta', attrs={'property': 'og:description'})
     description = description_tag.get('content') if description_tag else ""
-    for tag in soup(['script', 'style', 'meta', 'link', 'img', 'video', 'a']):
+
+    for tag in soup(['script', 'style', 'meta', 'link', 'img', 'video', 'a', 'footer', 'header']):
         tag.decompose()
+
     content = ' '.join(soup.get_text(separator=" ", strip=True).split())
     content = content.replace(title, "").replace(description, "")
+
     return {"#url": url, "title": title, "description": description, "content": content, "meta_data": meta_data}
 
 def write_page_data(output_file, page_data, format_type, first_entry):
@@ -75,7 +105,7 @@ def write_page_data(output_file, page_data, format_type, first_entry):
             data_txt = f"#{page_data['#url']} {{ #{page_data['content']} #{page_data['title']} #{page_data['description']} #{page_data['meta_data']} }}"
             f.write(data_txt + "\n")
 
-def crawl_and_save(url, driver, output_file, format_type="json", depth=0, max_depth=3):
+def crawl_and_save(url, driver, output_file, format_type="json", depth=0, max_depth=20):
     global visited_links, unique_urls, content_stream, is_crawling
 
     if depth > max_depth or not is_crawling:
