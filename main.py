@@ -114,9 +114,7 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
             "title": title,
             "description": meta_description,
             "content":content_final,
-            "metadata":{
-                'date':metadata
-            }
+            "metadata": metadata
     }
     with open(output_file, 'a+', encoding='utf-8', newline='') as f:
         f.write(f'{data},\n')
