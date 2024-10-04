@@ -119,9 +119,6 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
     with open(output_file, 'a+', encoding='utf-8', newline='') as f:
         f.write(f'{data},\n')
 
-    
-
-
 def run_crawl(website_url, chrome_driver_path, output_file):
     # check file if exist, rm
     if os.path.exists(output_file):
