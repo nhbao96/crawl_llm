@@ -56,54 +56,20 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
 
     title_hashes.add(title_hash)
     visited_links.add(url)
-    
-    # get description
-    try:
-        meta_description = soup.find('meta', attrs={'property': 'og:description'}).get('content')
-    except Exception as e:
-        print(f'Can not get description from {url}:{e}')
-        meta_description =''
-    
-    #metadata
-    try:
-        metadata_raw = soup.find('p', class_='author').get_text()
-        metadata =metadata_raw.split('-')
-    except Exception as e:
-        metadata =['','']
-    
-    # get content
-    try:
-        content_all = soup.find_all("div", {"class":"ta-justify"})
-        content_all = content_all[0].find_all('p')
-        content_final=""
-        for content in content_all[0:-1]:
-            content_final=content_final+content.text.strip()
-    except:
-        print('no content')
-        content_final=''
-    else:
-        print('content pass')
-    
-    data ={
-            "#url":url,
-            "title": title,
-            "description": meta_description,
-            "content":content_final,
-            "metadata":{
-                'date':metadata[1]
-            }
-    }
-    with open(output_file, 'a+', encoding='utf-8', newline='') as f:
-        f.write(f'{data},\n')
 
+    #check url before go through content
     # find , handle child urls
     for link in soup.find_all('a', href=True):
         new_url = link['href']
         
         # rm rss
         if 'rss' in new_url:
-            continue 
-
+            continue
+        # remove video and do not values content link
+        if ('video' in new_url) or ('media' in new_url) or ('podcast' in new_url):
+            continue
+        if ('#' in new_url) or ('@' in new_url) or ('javascript' in new_url):
+            continue
         # change absolute
         if new_url.startswith('/'):
             new_url = url.rstrip('/') + new_url
@@ -115,6 +81,47 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
         # recursive handle child url
         if new_url not in visited_links and new_url.startswith(url):
             crawl(new_url, driver, output_file, depth + 1, max_depth, visited_links, title_hashes)
+    
+    # get description
+    try:
+        meta_description = soup.find('meta', attrs={'property': 'og:description'}).get('content')
+    except Exception as e:
+        print(f'Can not get description from {url}:{e}')
+        meta_description =''
+    
+    #metadata
+    time_tag = soup.find_all("meta", {"class": "cms-date"})
+    datetime_crawled = time_tag[0]['content'] if time_tag else "Not found"
+    keywords_tag = soup.find('meta', attrs={'name': 'keywords'})
+    keywords = keywords_tag.get('content') if keywords_tag else "No keywords"
+    metadata={"datetime_crawled": datetime_crawled, "keywords": keywords}
+    # get content
+    try:
+        content_all = soup.find_all("div", {"class": "article__body cms-body"})
+        content_all = content_all[0].find_all('p')
+
+        for tag in content_all:
+            for attribute in ["class", "id", "name",'script', 'style', 'meta', 'link', 'img', 'video', 'a']:
+                del tag[attribute]
+        content_final=""
+        for content in content_all[0:-1]:
+            content_final=content_final+content.text.strip()
+    except:
+        return
+    
+    data ={
+            "#url":url,
+            "title": title,
+            "description": meta_description,
+            "content":content_final,
+            "metadata":{
+                'date':metadata
+            }
+    }
+    with open(output_file, 'a+', encoding='utf-8', newline='') as f:
+        f.write(f'{data},\n')
+
+    
 
 
 def run_crawl(website_url, chrome_driver_path, output_file):
@@ -131,7 +138,7 @@ def run_crawl(website_url, chrome_driver_path, output_file):
         driver.quit()
 
 #data config
-website_url = 'https://vtv.vn/'
+website_url = 'https://baophapluat.vn/'
 chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.exe'
 output_file = 'content.json'
 
