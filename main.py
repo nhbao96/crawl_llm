@@ -120,10 +120,6 @@ def crawl(url, driver, output_file, depth=0, max_depth=3, visited_links=set(), t
     }
     with open(output_file, 'a+', encoding='utf-8', newline='') as f:
         f.write(f'{data},\n')
-
-    
-
-
 def run_crawl(website_url, chrome_driver_path, output_file):
     # check file if exist, rm
     if os.path.exists(output_file):
@@ -143,13 +139,11 @@ chrome_driver_path = r'C:\Users\atong\Documents\chromedriver-win64\chromedriver.
 output_file = 'content.json'
 
 #process content file 
-with open(output_file, 'w+', encoding='utf-8') as file:
+with open(output_file, 'a+', encoding='utf-8') as file:
     file.write('{\n')
     file.close()
-run_crawl(website_url, chrome_driver_path, output_file)
+run_crawl(website_url, output_file)
 
-with open(output_file, 'w+', encoding='utf-8') as file:
-    file.seek(-1, 2)
-    file.truncate()
+with open(output_file, 'a+', encoding='utf-8') as file:
     file.write('\n}')
     file.close()
