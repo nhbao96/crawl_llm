@@ -98,16 +98,6 @@ def crawl_and_save(url, driver, output_file, format_type="json", depth=0, max_de
     else:
         unique_urls.add(normalized_url)
 
-    try:
-        page_data = extract_page_data(driver, normalized_url)
-        if page_data:
-            write_page_data(output_file, page_data, format_type, len(visited_links) == 0)
-            visited_links.add(normalized_url)
-            log_message(f"Writing content from: {normalized_url}", "INFO")
-    except Exception as e:
-        log_message(f"Error processing {url}: {e}", "ERROR")
-        return
-
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     for link in soup.find_all('a', href=True):
         new_url = link['href']
@@ -123,6 +113,16 @@ def crawl_and_save(url, driver, output_file, format_type="json", depth=0, max_de
             new_url = new_url.replace(".htm", "", new_url.count(".htm") - 1)
         if new_url.startswith(normalized_url):
             crawl_and_save(new_url, driver, output_file, format_type, depth + 1, max_depth)
+
+    try:
+        page_data = extract_page_data(driver, normalized_url)
+        if page_data:
+            write_page_data(output_file, page_data, format_type, len(visited_links) == 0)
+            visited_links.add(normalized_url)
+            log_message(f"Writing content from: {normalized_url}", "INFO")
+    except Exception as e:
+        log_message(f"Error processing {url}: {e}", "ERROR")
+        return
 
 def start_crawl_thread(website_url, output_file_param, format_type_param):
     global driver, visited_links, unique_urls, content_stream, is_crawling, output_file, format_type
